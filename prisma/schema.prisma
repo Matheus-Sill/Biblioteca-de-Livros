@@ -1,0 +1,30 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Book {
+  id       String @id @default(cuid())
+  title    String
+  author   String
+  category String
+  year     Int
+  status   String @default("DISPONIVEL")
+  userId   String
+
+  loans    Loan[]   // <- agora é uma lista (relação 1-para-N)
+}
+
+model Loan {
+  id           String    @id @default(cuid())
+  borrowerName String
+  loanDate     DateTime  @default(now())
+  returnDate   DateTime?
+  bookId       String              // sem @unique
+  userId       String              // recomendo adicionar isso também (ver abaixo)
+  book         Book      @relation(fields: [bookId], references: [id])
+}
