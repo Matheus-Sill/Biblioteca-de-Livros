@@ -11,10 +11,10 @@ async function getUserId() {
 }
 
 type LivroInput = {
-  titulo: string
-  autor: string
-  categoria: string
-  ano: number
+  title: string
+  author: string
+  category: string
+  year: number
 }
 
 export async function addLivro(data: LivroInput) {
@@ -43,7 +43,7 @@ export async function deleteLivro(id: string) {
   revalidatePath("/dashboard")
 }
 
-export async function emprestarLivro(bookId: string, pessoa: string) {
+export async function emprestarLivro(bookId: string, borrowerName: string) {
   const userId = await getUserId()
 
   const livro = await prisma.book.findFirst({ where: { id: bookId, userId } })
@@ -51,7 +51,7 @@ export async function emprestarLivro(bookId: string, pessoa: string) {
   if (livro.status === "EMPRESTADO") throw new Error("Livro já está emprestado.")
 
   await prisma.$transaction([
-    prisma.loan.create({ data: { bookId, pessoa, userId } }),
+    prisma.loan.create({ data: { bookId, borrowerName, userId } }),
     prisma.book.update({ where: { id: bookId }, data: { status: "EMPRESTADO" } }),
   ])
 
@@ -66,15 +66,15 @@ export async function devolverLivro(bookId: string) {
   if (livro.status !== "EMPRESTADO") throw new Error("Livro não está emprestado.")
 
   const emprestimoAberto = await prisma.loan.findFirst({
-    where: { bookId, dataDevolucao: null },
-    orderBy: { dataEmprestimo: "desc" },
+    where: { bookId, userId, returnDate: null },
+    orderBy: { loanDate: "desc" },
   })
   if (!emprestimoAberto) throw new Error("Empréstimo em aberto não encontrado.")
 
   await prisma.$transaction([
     prisma.loan.update({
       where: { id: emprestimoAberto.id },
-      data: { dataDevolucao: new Date() },
+      data: { returnDate: new Date() },
     }),
     prisma.book.update({ where: { id: bookId }, data: { status: "DISPONIVEL" } }),
   ])
